@@ -913,6 +913,27 @@ impl FocusFlowApp {
         ui.vertical(|ui| {
             // Header panel: title, status indicator, compact toggle
             ui.horizontal(|ui| {
+                // Draw a beautiful glowing mini vector logo icon
+                let logo_size = egui::vec2(28.0, 28.0);
+                let (response, painter) = ui.allocate_painter(logo_size, egui::Sense::hover());
+                let center = response.rect.center();
+                let accent = self.get_theme_accent_color();
+                
+                // Ring backdrop
+                painter.circle_stroke(center, 12.0, egui::Stroke::new(1.5, egui::Color32::from_white_alpha(40)));
+                // Glowing accent ring
+                painter.circle_stroke(center, 12.0, egui::Stroke::new(2.5, accent.linear_multiply(0.7)));
+                
+                // Tomato Core body (interactive accent-themed)
+                painter.circle_filled(center + egui::vec2(0.0, 2.0), 7.0, accent);
+                // Tomato specular shine highlight
+                painter.circle_filled(center + egui::vec2(-2.5, -0.5), 1.5, egui::Color32::from_white_alpha(200));
+                
+                // Green stem & leaf
+                painter.circle_filled(center - egui::vec2(2.5, 4.0), 2.0, egui::Color32::from_rgb(80, 220, 140));
+                painter.circle_filled(center - egui::vec2(-2.5, 4.0), 2.0, egui::Color32::from_rgb(60, 180, 110));
+                
+                ui.add_space(6.0);
                 ui.label(egui::RichText::new("Focus Flow").size(24.0).strong().color(egui::Color32::WHITE));
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
