@@ -23,7 +23,7 @@ Write-Host "Installing standalone binary..." -ForegroundColor Green
 Copy-Item -Path $sourcePath -Destination $destPath -Force
 
 $iconSourcePath = Join-Path $PSScriptRoot "logo.ico"
-$iconDestPath = Join-Path $localProgramsDir "logo.ico"
+$iconDestPath = Join-Path $localProgramsDir "logo_v2.ico"
 if (Test-Path $iconSourcePath) {
     Write-Host "Copying application icon..." -ForegroundColor Green
     Copy-Item -Path $iconSourcePath -Destination $iconDestPath -Force
