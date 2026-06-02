@@ -1572,8 +1572,8 @@ impl eframe::App for FocusFlowApp {
             ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(egui::WindowLevel::AlwaysOnTop));
         } else {
             if self.last_compact_state {
-                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(780.0, 640.0)));
-                ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(egui::vec2(600.0, 500.0)));
+                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(900.0, 720.0)));
+                ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(egui::vec2(720.0, 580.0)));
                 ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(egui::WindowLevel::Normal));
             }
         }
@@ -1610,8 +1610,8 @@ impl eframe::App for FocusFlowApp {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([780.0, 640.0])
-            .with_min_inner_size([600.0, 500.0])
+            .with_inner_size([900.0, 720.0])
+            .with_min_inner_size([720.0, 580.0])
             .with_title("Focus Flow"),
         ..Default::default()
     };
