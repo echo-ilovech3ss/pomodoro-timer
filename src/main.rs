@@ -7,6 +7,12 @@ use std::collections::HashMap;
 use rodio::source::{SineWave, Source};
 use chrono::Datelike;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum TimerMode {
     Work,
@@ -452,15 +458,16 @@ impl FocusFlowApp {
             }
         }
         if helper_path.exists() {
-            std::process::Command::new("powershell")
-                .arg("-WindowStyle")
+            let mut cmd = std::process::Command::new("powershell");
+            cmd.arg("-WindowStyle")
                 .arg("Hidden")
                 .arg("-ExecutionPolicy")
                 .arg("Bypass")
                 .arg("-File")
-                .arg(helper_path)
-                .spawn()
-                .ok();
+                .arg(helper_path);
+            #[cfg(target_os = "windows")]
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.spawn().ok();
         }
 
         app
@@ -536,11 +543,11 @@ impl FocusFlowApp {
             r#"[void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); $notification = New-Object System.Windows.Forms.NotifyIcon; $notification.Icon = [System.Drawing.SystemIcons]::Information; $notification.BalloonTipTitle = '{}'; $notification.BalloonTipText = '{}'; $notification.Visible = $true; $notification.ShowBalloonTip(5000);"#,
             title.replace('\'', "''"), message.replace('\'', "''")
         );
-        std::process::Command::new("powershell")
-            .arg("-Command")
-            .arg(script)
-            .spawn()
-            .ok();
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.arg("-Command").arg(script);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd.spawn().ok();
     }
 
     fn handle_timer_complete(&mut self) {
