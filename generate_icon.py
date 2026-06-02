@@ -66,50 +66,10 @@ def create_logo_image(size):
     if len(wave_pts3) > 1:
         draw.line(wave_pts3, fill=(255, 50, 150, 160), width=int(4*scale), joint="round")
 
-    # 5. Draw central teardrop tomato core
-    td_pts = []
-    cx, cy = size/2, 235*scale
-    rx, ry = 34*scale, 35*scale
-    for i in range(100):
-        theta = i / 100.0 * 2.0 * math.pi
-        r_scale = 1.0 - 0.4 * math.sin(theta/2)
-        x = cx + rx * math.cos(theta) * r_scale
-        y = cy + ry * math.sin(theta) * r_scale
-        if theta > math.pi:
-            y += (theta - math.pi) * (2.0 * math.pi - theta) * 1.5 * scale
-        td_pts.append((x, y))
-        
-    draw.polygon(td_pts, fill=(255, 80, 80, 240), outline=(255, 110, 80, 255), width=int(2*scale))
-    
-    # 6. Draw double leaf accent on top
-    # Left leaf
-    left_leaf_pts = []
-    lcx, lcy = cx, 195*scale
-    for i in range(50):
-        theta = i / 50.0 * math.pi
-        x = lcx - math.sin(theta) * 15*scale
-        y = lcy - (1.0 - math.cos(theta)) * 12*scale
-        left_leaf_pts.append((x, y))
-    for i in range(50):
-        theta = i / 50.0 * math.pi
-        x = lcx - (1.0 - math.cos(theta)) * 10*scale
-        y = lcy - math.sin(theta) * 15*scale
-        left_leaf_pts.append((x, y))
-    draw.polygon(left_leaf_pts, fill=(80, 220, 140, 255))
-    
-    # Right leaf
-    right_leaf_pts = []
-    for i in range(50):
-        theta = i / 50.0 * math.pi
-        x = lcx + math.sin(theta) * 15*scale
-        y = lcy - (1.0 - math.cos(theta)) * 12*scale
-        right_leaf_pts.append((x, y))
-    for i in range(50):
-        theta = i / 50.0 * math.pi
-        x = lcx + (1.0 - math.cos(theta)) * 10*scale
-        y = lcy - math.sin(theta) * 15*scale
-        right_leaf_pts.append((x, y))
-    draw.polygon(right_leaf_pts, fill=(60, 180, 110, 255))
+    # 5. Draw central abstract audio bars (graphic EQ) instead of fruit
+    draw.line([(size/2 - 60*scale, size/2), (size/2 + 60*scale, size/2)], fill=accent_coral, width=int(12*scale))
+    draw.line([(size/2 - 36*scale, size/2 - 42*scale), (size/2 + 36*scale, size/2 - 42*scale)], fill=accent_coral, width=int(12*scale))
+    draw.line([(size/2 - 36*scale, size/2 + 42*scale), (size/2 + 36*scale, size/2 + 42*scale)], fill=accent_coral, width=int(12*scale))
     
     return img
 
@@ -117,4 +77,4 @@ sizes = [256, 128, 64, 48, 32, 16]
 images = [create_logo_image(s) for s in sizes]
 
 images[0].save("logo.ico", format="ICO", sizes=[(s, s) for s in sizes])
-print("Successfully generated logo.ico!")
+print("Successfully generated abstract logo.ico!")

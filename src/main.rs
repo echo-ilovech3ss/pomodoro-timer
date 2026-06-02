@@ -924,14 +924,10 @@ impl FocusFlowApp {
                 // Glowing accent ring
                 painter.circle_stroke(center, 12.0, egui::Stroke::new(2.5, accent.linear_multiply(0.7)));
                 
-                // Tomato Core body (interactive accent-themed)
-                painter.circle_filled(center + egui::vec2(0.0, 2.0), 7.0, accent);
-                // Tomato specular shine highlight
-                painter.circle_filled(center + egui::vec2(-2.5, -0.5), 1.5, egui::Color32::from_white_alpha(200));
-                
-                // Green stem & leaf
-                painter.circle_filled(center - egui::vec2(2.5, 4.0), 2.0, egui::Color32::from_rgb(80, 220, 140));
-                painter.circle_filled(center - egui::vec2(-2.5, 4.0), 2.0, egui::Color32::from_rgb(60, 180, 110));
+                // Center abstract audio bars (graphic EQ) instead of the tomato core
+                painter.line_segment([center - egui::vec2(5.0, 0.0), center + egui::vec2(5.0, 0.0)], egui::Stroke::new(2.0, accent));
+                painter.line_segment([center - egui::vec2(3.0, -3.5), center + egui::vec2(3.0, -3.5)], egui::Stroke::new(2.0, accent));
+                painter.line_segment([center - egui::vec2(3.0, 3.5), center + egui::vec2(3.0, 3.5)], egui::Stroke::new(2.0, accent));
                 
                 ui.add_space(6.0);
                 ui.label(egui::RichText::new("Focus Flow").size(24.0).strong().color(egui::Color32::WHITE));

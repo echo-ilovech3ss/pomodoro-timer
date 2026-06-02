@@ -14,12 +14,6 @@
       <stop offset="100%" stop-color="#ff3296"/>
     </linearGradient>
 
-    <!-- Wave/Flow Gradient -->
-    <linearGradient id="flowGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" stop-color="#ff3296" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#ff6e50" stop-opacity="0.95"/>
-    </linearGradient>
-
     <!-- Core Glow Filter -->
     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="14" result="blur"/>
@@ -43,7 +37,7 @@
   <circle cx="256" cy="256" r="160" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round"
           stroke-dasharray="750" stroke-dashoffset="180" filter="url(#glow)" />
 
-  <!-- Ambient Sound Waves / Cozy Lo-Fi Waveform -->
+  <!-- Ambient Sound Waves / Cozy Lo-Fi Waveforms -->
   <g filter="url(#subtleGlow)">
     <!-- Wave 1 (Faded background wave) -->
     <path d="M 160 256 C 180 200, 200 200, 220 256 C 240 312, 260 312, 280 256 C 300 200, 320 200, 352 256" 
@@ -57,14 +51,4 @@
     <path d="M 180 256 C 195 230, 210 230, 225 256 C 240 282, 255 282, 270 256 C 285 230, 300 230, 332 256" 
           fill="none" stroke="#ff3296" stroke-width="4" stroke-linecap="round" opacity="0.6" />
   </g>
-
-  <!-- Tomato Core & Flow Teardrop -->
-  <path d="M 256 195 C 275 195, 290 215, 290 235 C 290 270, 256 305, 256 305 C 256 305, 222 270, 222 235 C 222 215, 237 195, 256 195 Z" 
-        fill="url(#flowGrad)" stroke="#ff6e50" stroke-width="3" filter="url(#subtleGlow)" />
-
-  <!-- Double Leaf Accent (Pomodoro Stem / Growth) -->
-  <path d="M 256 195 C 256 180, 272 170, 268 165 C 260 168, 256 182, 256 195 Z" 
-        fill="#50dc8c" filter="url(#subtleGlow)" />
-  <path d="M 256 195 C 256 180, 240 170, 244 165 C 252 168, 256 182, 256 195 Z" 
-        fill="#3ca064" />
 </svg>
