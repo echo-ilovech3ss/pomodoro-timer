@@ -210,7 +210,7 @@ impl AudioPlayer {
                     let source = SineWave::new(freq)
                         .take_duration(std::time::Duration::from_secs(8))
                         .fade_in(std::time::Duration::from_secs(3))
-                        .amplify(0.012); // Soft ambient volume
+                        .amplify(0.025); // Warm ambient volume (amplified)
                     sink.append(source);
                     spawned_sinks.push(sink);
                 }
@@ -462,8 +462,8 @@ impl FocusFlowApp {
                 }
                 AmbientStyle::BinauralBeats => {
                     if let Ok(sink) = rodio::Sink::try_new(handle) {
-                        let s1 = SineWave::new(120.0).amplify(0.008);
-                        let s2 = SineWave::new(125.0).amplify(0.008);
+                        let s1 = SineWave::new(120.0).amplify(0.015);
+                        let s2 = SineWave::new(125.0).amplify(0.015);
                         let mixed = s1.mix(s2);
                         sink.append(mixed);
                         self.ambient_sink = Some(sink);
@@ -471,14 +471,14 @@ impl FocusFlowApp {
                 }
                 AmbientStyle::WhiteNoise => {
                     if let Ok(sink) = rodio::Sink::try_new(handle) {
-                        let source = NoiseSource::new(NoiseStyle::White).amplify(0.006);
+                        let source = NoiseSource::new(NoiseStyle::White).amplify(0.012);
                         sink.append(source);
                         self.ambient_sink = Some(sink);
                     }
                 }
                 AmbientStyle::BrownNoise => {
                     if let Ok(sink) = rodio::Sink::try_new(handle) {
-                        let source = NoiseSource::new(NoiseStyle::Brown).amplify(0.012);
+                        let source = NoiseSource::new(NoiseStyle::Brown).amplify(0.025);
                         sink.append(source);
                         self.ambient_sink = Some(sink);
                     }
@@ -1501,7 +1501,7 @@ impl eframe::App for FocusFlowApp {
                                     .take_duration(std::time::Duration::from_secs(3))
                                     .fade_in(std::time::Duration::from_millis(150))
                                     .fade_out(std::time::Duration::from_secs(2))
-                                    .amplify(0.012); // Cozy soft Rhodes sound
+                                    .amplify(0.035); // Cozy mellow Rhodes sound (amplified)
                                 sink.append(source);
                                 self.dynamic_sinks.push(sink);
                             }
@@ -1514,7 +1514,7 @@ impl eframe::App for FocusFlowApp {
                             let source = SineWave::new(55.0)
                                 .take_duration(std::time::Duration::from_millis(85))
                                 .fade_out(std::time::Duration::from_millis(40))
-                                .amplify(0.18); // Kick thud
+                                .amplify(0.25); // Kick thud (amplified)
                             sink.append(source);
                             self.dynamic_sinks.push(sink);
                         }
@@ -1526,7 +1526,7 @@ impl eframe::App for FocusFlowApp {
                             let source = NoiseSource::new(NoiseStyle::White)
                                 .take_duration(std::time::Duration::from_millis(100))
                                 .fade_out(std::time::Duration::from_millis(70))
-                                .amplify(0.015); // Snare snap
+                                .amplify(0.035); // Snare snap (amplified)
                             sink.append(source);
                             self.dynamic_sinks.push(sink);
                         }
@@ -1538,7 +1538,7 @@ impl eframe::App for FocusFlowApp {
                             let source = NoiseSource::new(NoiseStyle::White)
                                 .take_duration(std::time::Duration::from_millis(30))
                                 .fade_out(std::time::Duration::from_millis(15))
-                                .amplify(0.008); // Hi-Hat click
+                                .amplify(0.018); // Hi-Hat click (amplified)
                             sink.append(source);
                             self.dynamic_sinks.push(sink);
                         }
@@ -1550,7 +1550,7 @@ impl eframe::App for FocusFlowApp {
                         if let Ok(sink) = rodio::Sink::try_new(handle) {
                             let source = NoiseSource::new(NoiseStyle::White)
                                 .take_duration(std::time::Duration::from_millis(5))
-                                .amplify(0.015); // Dusty pop click
+                                .amplify(0.025); // Dusty pop click (amplified)
                             sink.append(source);
                             self.dynamic_sinks.push(sink);
                         }
