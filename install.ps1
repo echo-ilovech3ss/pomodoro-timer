@@ -29,6 +29,14 @@ if (Test-Path $iconSourcePath) {
     Copy-Item -Path $iconSourcePath -Destination $iconDestPath -Force
 }
 
+# Copy System Tray Helper script
+$traySourcePath = Join-Path $PSScriptRoot "tray_helper.ps1"
+$trayDestPath = Join-Path $localProgramsDir "tray_helper.ps1"
+if (Test-Path $traySourcePath) {
+    Write-Host "Copying system tray helper..." -ForegroundColor Green
+    Copy-Item -Path $traySourcePath -Destination $trayDestPath -Force
+}
+
 # 3. Create shortcuts using WScript COM Object
 Write-Host "Creating Start Menu and Desktop shortcuts..." -ForegroundColor Green
 $wscript = New-Object -ComObject WScript.Shell

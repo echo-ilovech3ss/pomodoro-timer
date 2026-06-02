@@ -37,12 +37,14 @@ enum AmbientStyle {
     WhiteNoise,
     BrownNoise,
     LofiBeat,
+    CozyRain,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum NoiseStyle {
     White,
     Brown,
+    Rain,
 }
 
 #[derive(Clone, Copy)]
@@ -93,6 +95,21 @@ impl Iterator for NoiseSource {
                 let brown = (self.last_brown + (0.05 * white)) / 1.02;
                 self.last_brown = brown;
                 Some(brown * 5.0)
+            }
+            NoiseStyle::Rain => {
+                // Rain is synthesized by combining:
+                // 1. A deep base low-frequency rumble (filtered Brown noise)
+                // 2. High-frequency raindrop splatters (random transient clicks)
+                let brown = (self.last_brown + (0.05 * white)) / 1.02;
+                self.last_brown = brown;
+                
+                let rand_val = self.xorshift.next_f32();
+                let splatter = if rand_val > 0.9997 {
+                    self.xorshift.next_f32() * 0.4
+                } else {
+                    0.0
+                };
+                Some(brown * 3.5 + splatter)
             }
         }
     }
@@ -426,6 +443,26 @@ impl FocusFlowApp {
 
         // Initialize ambient music state if loaded configuration is set
         app.update_ambient_sound();
+
+        // Spawn background System Tray (hidden icons) helper script
+        let mut helper_path = std::path::PathBuf::from("tray_helper.ps1");
+        if !helper_path.exists() {
+            if let Some(local_data) = dirs::data_local_dir() {
+                helper_path = local_data.join("Programs").join("Focus Flow").join("tray_helper.ps1");
+            }
+        }
+        if helper_path.exists() {
+            std::process::Command::new("powershell")
+                .arg("-WindowStyle")
+                .arg("Hidden")
+                .arg("-ExecutionPolicy")
+                .arg("Bypass")
+                .arg("-File")
+                .arg(helper_path)
+                .spawn()
+                .ok();
+        }
+
         app
     }
 
@@ -479,6 +516,13 @@ impl FocusFlowApp {
                 AmbientStyle::BrownNoise => {
                     if let Ok(sink) = rodio::Sink::try_new(handle) {
                         let source = NoiseSource::new(NoiseStyle::Brown).amplify(0.025);
+                        sink.append(source);
+                        self.ambient_sink = Some(sink);
+                    }
+                }
+                AmbientStyle::CozyRain => {
+                    if let Ok(sink) = rodio::Sink::try_new(handle) {
+                        let source = NoiseSource::new(NoiseStyle::Rain).amplify(0.025);
                         sink.append(source);
                         self.ambient_sink = Some(sink);
                     }
@@ -552,8 +596,50 @@ impl FocusFlowApp {
             category: self.active_category.clone(),
         };
 
+        let old_streak = self.calculate_daily_streak();
+        
         self.history.push(entry);
         let _ = self.history_manager.save_history(&self.history);
+        
+        let new_streak = self.calculate_daily_streak();
+        if new_streak > old_streak {
+            Self::show_windows_notification(
+                "Streak Extended! 🔥",
+                &format!("Amazing! You are now on a {} Day Focus Streak!", new_streak)
+            );
+        }
+    }
+
+    fn calculate_daily_streak(&self) -> u32 {
+        if self.history.is_empty() {
+            return 0;
+        }
+        
+        let dates: std::collections::BTreeSet<chrono::NaiveDate> = self.history.iter()
+            .map(|entry| entry.timestamp.date_naive())
+            .collect();
+            
+        let today = chrono::Local::now().date_naive();
+        let yesterday = today - chrono::TimeDelta::days(1);
+        
+        let mut current_date = if dates.contains(&today) {
+            today
+        } else if dates.contains(&yesterday) {
+            yesterday
+        } else {
+            return 0;
+        };
+        
+        let mut streak = 0;
+        while dates.contains(&current_date) {
+            streak += 1;
+            if let Some(prev) = current_date.checked_sub_days(chrono::Days::new(1)) {
+                current_date = prev;
+            } else {
+                break;
+            }
+        }
+        streak
     }
 
     fn get_breathing_value(&self) -> f32 {
@@ -949,9 +1035,25 @@ impl FocusFlowApp {
 
                     Self::draw_badge(ui, status_text, bg, fg);
 
+                    let streak = self.calculate_daily_streak();
+                    if streak > 0 {
+                        ui.add_space(8.0);
+                        let streak_text = format!("🔥 {} Day Streak", streak);
+                        Self::draw_badge(
+                            ui,
+                            &streak_text,
+                            egui::Color32::from_rgb(255, 110, 80),
+                            egui::Color32::BLACK
+                        );
+                    }
+
                     ui.add_space(8.0);
                     if ui.button("📺 Compact").clicked() {
                         self.compact_mode = true;
+                    }
+                    ui.add_space(8.0);
+                    if ui.button("📥 Minimize to Tray").clicked() {
+                        ui.ctx().send_viewport_cmd(egui::ViewportCommand::Visible(false));
                     }
                 });
             });
@@ -1027,6 +1129,7 @@ impl FocusFlowApp {
                             AmbientStyle::WhiteNoise => "💨 White Noise Hiss",
                             AmbientStyle::BrownNoise => "🌊 Brown Noise Ocean",
                             AmbientStyle::LofiBeat => "☕ Cozy Lo-Fi Beats",
+                            AmbientStyle::CozyRain => "🌧️ Cozy Rainfall (Procedural)",
                         })
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::None, "🔈 Mute / Silence");
@@ -1035,6 +1138,7 @@ impl FocusFlowApp {
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::WhiteNoise, "💨 White Noise Hiss");
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::BrownNoise, "🌊 Brown Noise Ocean");
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::LofiBeat, "☕ Cozy Lo-Fi Beats");
+                            ui.selectable_value(&mut self.ambient_style, AmbientStyle::CozyRain, "🌧️ Cozy Rainfall (Procedural)");
                         });
                     if self.ambient_style != old_style {
                         self.update_ambient_sound();
@@ -1426,9 +1530,14 @@ impl FocusFlowApp {
 
                     ui.add_space(4.0);
 
-                    if ui.button("📺 Full").clicked() {
-                        self.compact_mode = false;
-                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("📺 Full").clicked() {
+                            self.compact_mode = false;
+                        }
+                        if ui.button("📥 Tray").clicked() {
+                            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Visible(false));
+                        }
+                    });
                 });
             });
         });
