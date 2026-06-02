@@ -22,6 +22,13 @@ $destPath = Join-Path $localProgramsDir $binaryName
 Write-Host "Installing standalone binary..." -ForegroundColor Green
 Copy-Item -Path $sourcePath -Destination $destPath -Force
 
+$iconSourcePath = Join-Path $PSScriptRoot "logo.ico"
+$iconDestPath = Join-Path $localProgramsDir "logo.ico"
+if (Test-Path $iconSourcePath) {
+    Write-Host "Copying application icon..." -ForegroundColor Green
+    Copy-Item -Path $iconSourcePath -Destination $iconDestPath -Force
+}
+
 # 3. Create shortcuts using WScript COM Object
 Write-Host "Creating Start Menu and Desktop shortcuts..." -ForegroundColor Green
 $wscript = New-Object -ComObject WScript.Shell
@@ -32,6 +39,9 @@ $startMenuLink = $wscript.CreateShortcut($startMenuLinkPath)
 $startMenuLink.TargetPath = $destPath
 $startMenuLink.WorkingDirectory = $localProgramsDir
 $startMenuLink.Description = "Premium Pomodoro Workspace with Procedural Audio"
+if (Test-Path $iconDestPath) {
+    $startMenuLink.IconLocation = $iconDestPath
+}
 $startMenuLink.Save()
 
 # Desktop Shortcut
@@ -40,6 +50,9 @@ $desktopLink = $wscript.CreateShortcut($desktopLinkPath)
 $desktopLink.TargetPath = $destPath
 $desktopLink.WorkingDirectory = $localProgramsDir
 $desktopLink.Description = "Premium Pomodoro Workspace with Procedural Audio"
+if (Test-Path $iconDestPath) {
+    $desktopLink.IconLocation = $iconDestPath
+}
 $desktopLink.Save()
 
 Write-Host "========================================" -ForegroundColor Cyan
