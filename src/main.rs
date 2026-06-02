@@ -36,6 +36,7 @@ enum AmbientStyle {
     BinauralBeats,
     WhiteNoise,
     BrownNoise,
+    LofiBeat,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -193,7 +194,8 @@ impl AudioPlayer {
         }
     }
 
-    fn play_ambient_chord(&self, chord_index: usize) {
+    fn play_ambient_chord(&self, chord_index: usize) -> Vec<rodio::Sink> {
+        let mut spawned_sinks = Vec::new();
         if let Some(ref handle) = self.stream_handle {
             // Harmonious pentatonic progressions
             let chords = [
@@ -210,12 +212,12 @@ impl AudioPlayer {
                         .fade_in(std::time::Duration::from_secs(3))
                         .amplify(0.012); // Soft ambient volume
                     sink.append(source);
-                    sink.detach();
+                    spawned_sinks.push(sink);
                 }
             }
         }
+        spawned_sinks
     }
-
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -358,6 +360,7 @@ struct FocusFlowApp {
 
     compact_mode: bool,
     last_compact_state: bool,
+    dynamic_sinks: Vec<rodio::Sink>,
 }
 
 impl FocusFlowApp {
@@ -418,9 +421,10 @@ impl FocusFlowApp {
 
             compact_mode: false,
             last_compact_state: false,
+            dynamic_sinks: Vec::new(),
         };
 
-        // Initialize ambient music state if loaded beat configuration is set
+        // Initialize ambient music state if loaded configuration is set
         app.update_ambient_sound();
         app
     }
@@ -439,43 +443,47 @@ impl FocusFlowApp {
     }
 
     fn update_ambient_sound(&mut self) {
+        // Explicitly and completely halt the previous stream to prevent stuck background audio!
+        if let Some(ref sink) = self.ambient_sink {
+            sink.stop();
+        }
+        self.ambient_sink = None;
+
+        // Clean up and halt all active dynamic note/beat sinks
+        for sink in &self.dynamic_sinks {
+            sink.stop();
+        }
+        self.dynamic_sinks.clear();
+
         if let Some(ref handle) = self.audio_player.stream_handle {
             match self.ambient_style {
-                AmbientStyle::None | AmbientStyle::SpacePad => {
-                    self.ambient_sink = None;
+                AmbientStyle::None | AmbientStyle::SpacePad | AmbientStyle::LofiBeat => {
+                    // Sequenced beat players will tick in the update loop rather than static infinite sinks
                 }
                 AmbientStyle::BinauralBeats => {
-                    if self.ambient_sink.is_none() {
-                        if let Ok(sink) = rodio::Sink::try_new(handle) {
-                            let s1 = SineWave::new(120.0).amplify(0.008);
-                            let s2 = SineWave::new(125.0).amplify(0.008);
-                            let mixed = s1.mix(s2);
-                            sink.append(mixed);
-                            self.ambient_sink = Some(sink);
-                        }
+                    if let Ok(sink) = rodio::Sink::try_new(handle) {
+                        let s1 = SineWave::new(120.0).amplify(0.008);
+                        let s2 = SineWave::new(125.0).amplify(0.008);
+                        let mixed = s1.mix(s2);
+                        sink.append(mixed);
+                        self.ambient_sink = Some(sink);
                     }
                 }
                 AmbientStyle::WhiteNoise => {
-                    if self.ambient_sink.is_none() {
-                        if let Ok(sink) = rodio::Sink::try_new(handle) {
-                            let source = NoiseSource::new(NoiseStyle::White).amplify(0.006);
-                            sink.append(source);
-                            self.ambient_sink = Some(sink);
-                        }
+                    if let Ok(sink) = rodio::Sink::try_new(handle) {
+                        let source = NoiseSource::new(NoiseStyle::White).amplify(0.006);
+                        sink.append(source);
+                        self.ambient_sink = Some(sink);
                     }
                 }
                 AmbientStyle::BrownNoise => {
-                    if self.ambient_sink.is_none() {
-                        if let Ok(sink) = rodio::Sink::try_new(handle) {
-                            let source = NoiseSource::new(NoiseStyle::Brown).amplify(0.012);
-                            sink.append(source);
-                            self.ambient_sink = Some(sink);
-                        }
+                    if let Ok(sink) = rodio::Sink::try_new(handle) {
+                        let source = NoiseSource::new(NoiseStyle::Brown).amplify(0.012);
+                        sink.append(source);
+                        self.ambient_sink = Some(sink);
                     }
                 }
             }
-        } else {
-            self.ambient_sink = None;
         }
     }
 
@@ -846,9 +854,7 @@ impl FocusFlowApp {
                 ui.add_space(8.0);
             }
 
-            // Tab bar split between History Log & Analytics
             ui.horizontal(|ui| {
-                // If there's scroll space, analytics will render below
                 ui.label(egui::RichText::new("Session Logs").strong().color(egui::Color32::WHITE));
             });
             ui.add_space(6.0);
@@ -903,6 +909,7 @@ impl FocusFlowApp {
     }
 
     fn render_timer_and_settings(&mut self, ui: &mut egui::Ui) {
+        let is_editable = !self.is_running;
         ui.vertical(|ui| {
             // Header panel: title, status indicator, compact toggle
             ui.horizontal(|ui| {
@@ -929,10 +936,7 @@ impl FocusFlowApp {
             ui.separator();
             ui.add_space(12.0);
 
-            // Workspace Configuration (Themes, Binaural Music, Task List, Durations)
-            let is_editable = self.status == TimerStatus::Ready || self.status == TimerStatus::Paused;
-
-            // Col 1: Custom chip category tags selection & Dynamic creation
+            // Category tags selection & Dynamic creation
             ui.label(egui::RichText::new("Focus Category").strong().color(egui::Color32::WHITE));
             ui.add_space(4.0);
 
@@ -998,6 +1002,7 @@ impl FocusFlowApp {
                             AmbientStyle::BinauralBeats => "🧠 Focus Binaural Beats",
                             AmbientStyle::WhiteNoise => "💨 White Noise Hiss",
                             AmbientStyle::BrownNoise => "🌊 Brown Noise Ocean",
+                            AmbientStyle::LofiBeat => "☕ Cozy Lo-Fi Beats",
                         })
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::None, "🔈 Mute / Silence");
@@ -1005,6 +1010,7 @@ impl FocusFlowApp {
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::BinauralBeats, "🧠 Focus Binaural Beats");
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::WhiteNoise, "💨 White Noise Hiss");
                             ui.selectable_value(&mut self.ambient_style, AmbientStyle::BrownNoise, "🌊 Brown Noise Ocean");
+                            ui.selectable_value(&mut self.ambient_style, AmbientStyle::LofiBeat, "☕ Cozy Lo-Fi Beats");
                         });
                     if self.ambient_style != old_style {
                         self.update_ambient_sound();
@@ -1407,6 +1413,9 @@ impl FocusFlowApp {
 
 impl eframe::App for FocusFlowApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // Cleanup completed dynamic audio sinks to prevent memory/resource leaks
+        self.dynamic_sinks.retain(|sink| !sink.empty());
+
         let ctx = ui.ctx();
         let now = std::time::Instant::now();
         let dt = now.duration_since(self.last_tick).as_secs_f64();
@@ -1432,13 +1441,97 @@ impl eframe::App for FocusFlowApp {
             self.breathing_accumulator = (self.breathing_accumulator + dt as f32) % 16.0;
         }
 
-        // Procedural music state synthesizer clock
+        // Procedural music/ambient noise state synthesizer clocks
         if self.ambient_style == AmbientStyle::SpacePad {
             self.ambient_timer += dt as f32;
             if self.ambient_timer >= 5.0 {
-                self.audio_player.play_ambient_chord(self.ambient_chord_index);
+                let sinks = self.audio_player.play_ambient_chord(self.ambient_chord_index);
+                self.dynamic_sinks.extend(sinks);
                 self.ambient_chord_index = (self.ambient_chord_index + 1) % 1000;
                 self.ambient_timer = 0.0;
+            }
+        } else if self.ambient_style == AmbientStyle::LofiBeat {
+            self.ambient_timer += dt as f32;
+            // 75 BPM Boom-Bap Sequencer Beat tick clock
+            if self.ambient_timer >= 0.20 {
+                let current_step = self.ambient_chord_index;
+                self.ambient_chord_index = (self.ambient_chord_index + 1) % 64;
+                self.ambient_timer -= 0.20; // Maintain absolute rhythmic grid precision
+
+                let step_in_bar = current_step % 16;
+                let bar = current_step / 16;
+
+                if let Some(ref handle) = self.audio_player.stream_handle {
+                    // 1. Trigger Rhodes Jazz Chords (Dm9 -> G13 -> Cmaj9 -> Am9)
+                    if step_in_bar == 0 {
+                        let chords = [
+                            vec![146.83, 174.61, 220.00, 261.63, 329.63], // Dm9: D3, F3, A3, C4, E4
+                            vec![98.00, 246.94, 293.66, 349.23, 440.00],  // G13: G2, B3, D4, F4, A4
+                            vec![130.81, 164.81, 196.00, 246.94, 293.66], // Cmaj9: C3, E3, G3, B3, D4
+                            vec![110.00, 130.81, 164.81, 196.00, 246.94], // Am9: A2, C3, E3, G3, B3
+                        ];
+                        let freqs = &chords[bar % chords.len()];
+                        for &freq in freqs {
+                            if let Ok(sink) = rodio::Sink::try_new(handle) {
+                                let source = SineWave::new(freq)
+                                    .take_duration(std::time::Duration::from_secs(3))
+                                    .fade_in(std::time::Duration::from_millis(150))
+                                    .fade_out(std::time::Duration::from_secs(2))
+                                    .amplify(0.012); // Cozy soft Rhodes sound
+                                sink.append(source);
+                                self.dynamic_sinks.push(sink);
+                            }
+                        }
+                    }
+
+                    // 2. Boom-Bap Kick Sweep: Steps 0, 6, 8, 11
+                    if step_in_bar == 0 || step_in_bar == 6 || step_in_bar == 8 || step_in_bar == 11 {
+                        if let Ok(sink) = rodio::Sink::try_new(handle) {
+                            let source = SineWave::new(55.0)
+                                .take_duration(std::time::Duration::from_millis(85))
+                                .fade_out(std::time::Duration::from_millis(40))
+                                .amplify(0.18); // Kick thud
+                            sink.append(source);
+                            self.dynamic_sinks.push(sink);
+                        }
+                    }
+
+                    // 3. Boom-Bap Snare: Steps 4, 12
+                    if step_in_bar == 4 || step_in_bar == 12 {
+                        if let Ok(sink) = rodio::Sink::try_new(handle) {
+                            let source = NoiseSource::new(NoiseStyle::White)
+                                .take_duration(std::time::Duration::from_millis(100))
+                                .fade_out(std::time::Duration::from_millis(70))
+                                .amplify(0.015); // Snare snap
+                            sink.append(source);
+                            self.dynamic_sinks.push(sink);
+                        }
+                    }
+
+                    // 4. Boom-Bap Hi-Hat: Steps 2, 6, 10, 14
+                    if step_in_bar == 2 || step_in_bar == 6 || step_in_bar == 10 || step_in_bar == 14 {
+                        if let Ok(sink) = rodio::Sink::try_new(handle) {
+                            let source = NoiseSource::new(NoiseStyle::White)
+                                .take_duration(std::time::Duration::from_millis(30))
+                                .fade_out(std::time::Duration::from_millis(15))
+                                .amplify(0.008); // Hi-Hat click
+                            sink.append(source);
+                            self.dynamic_sinks.push(sink);
+                        }
+                    }
+
+                    // 5. Random Cozy Vinyl Crackle clicks (5% chance per step)
+                    let rand_val = (self.hue_accumulator * 12345.67).sin().fract().abs();
+                    if rand_val > 0.94 {
+                        if let Ok(sink) = rodio::Sink::try_new(handle) {
+                            let source = NoiseSource::new(NoiseStyle::White)
+                                .take_duration(std::time::Duration::from_millis(5))
+                                .amplify(0.015); // Dusty pop click
+                            sink.append(source);
+                            self.dynamic_sinks.push(sink);
+                        }
+                    }
+                }
             }
         }
 
