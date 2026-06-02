@@ -924,10 +924,17 @@ impl FocusFlowApp {
                 // Glowing accent ring
                 painter.circle_stroke(center, 12.0, egui::Stroke::new(2.5, accent.linear_multiply(0.7)));
                 
-                // Center abstract audio bars (graphic EQ) instead of the tomato core
-                painter.line_segment([center - egui::vec2(5.0, 0.0), center + egui::vec2(5.0, 0.0)], egui::Stroke::new(2.0, accent));
-                painter.line_segment([center - egui::vec2(3.0, -3.5), center + egui::vec2(3.0, -3.5)], egui::Stroke::new(2.0, accent));
-                painter.line_segment([center - egui::vec2(3.0, 3.5), center + egui::vec2(3.0, 3.5)], egui::Stroke::new(2.0, accent));
+                // Center abstract audio sine wave instead of clashing bars
+                let mut wave_points = Vec::new();
+                for i in 0..12 {
+                    let x = center.x - 7.0 + (i as f32 / 11.0) * 14.0;
+                    let angle = (i as f32 / 11.0) * 2.0 * std::f32::consts::PI;
+                    let y = center.y + angle.sin() * 4.0;
+                    wave_points.push(egui::pos2(x, y));
+                }
+                for i in 0..11 {
+                    painter.line_segment([wave_points[i], wave_points[i+1]], egui::Stroke::new(1.8, accent));
+                }
                 
                 ui.add_space(6.0);
                 ui.label(egui::RichText::new("Focus Flow").size(24.0).strong().color(egui::Color32::WHITE));

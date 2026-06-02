@@ -66,10 +66,8 @@ def create_logo_image(size):
     if len(wave_pts3) > 1:
         draw.line(wave_pts3, fill=(255, 50, 150, 160), width=int(4*scale), joint="round")
 
-    # 5. Draw central abstract audio bars (graphic EQ) instead of fruit
-    draw.line([(size/2 - 60*scale, size/2), (size/2 + 60*scale, size/2)], fill=accent_coral, width=int(12*scale))
-    draw.line([(size/2 - 36*scale, size/2 - 42*scale), (size/2 + 36*scale, size/2 - 42*scale)], fill=accent_coral, width=int(12*scale))
-    draw.line([(size/2 - 36*scale, size/2 + 42*scale), (size/2 + 36*scale, size/2 + 42*scale)], fill=accent_coral, width=int(12*scale))
+    # 5. Finished drawing clean waveforms in center
+    pass
     
     return img
 
