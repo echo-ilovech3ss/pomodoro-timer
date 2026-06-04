@@ -17,7 +17,8 @@ def create_logo_image(size):
     # Add a subtle radial gradient highlight to the squircle
     glow_img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     glow_draw = ImageDraw.Draw(glow_img)
-    glow_draw.circle((size/2, size/2), 160*scale, fill=(180, 100, 255, 25))
+    r_glow = 160 * scale
+    glow_draw.ellipse([size/2 - r_glow, size/2 - r_glow, size/2 + r_glow, size/2 + r_glow], fill=(180, 100, 255, 25))
     glow_img = glow_img.filter(ImageFilter.GaussianBlur(30*scale))
     img.alpha_composite(glow_img)
     
@@ -25,7 +26,8 @@ def create_logo_image(size):
     draw.rounded_rectangle(sq_rect, radius=r_rect, fill=None, outline=(45, 34, 77, 255), width=border_width)
     
     # 2. Draw outer ring backdrop
-    draw.circle((size/2, size/2), 160*scale, fill=None, outline=(37, 27, 62, 255), width=int(12*scale))
+    r_ring = 160 * scale
+    draw.ellipse([size/2 - r_ring, size/2 - r_ring, size/2 + r_ring, size/2 + r_ring], fill=None, outline=(37, 27, 62, 255), width=int(12*scale))
     
     # 3. Draw glowing Pomodoro ring segments (Coral -> Pink -> Purple)
     accent_coral = (255, 110, 80, 255)
@@ -75,4 +77,5 @@ sizes = [256, 128, 64, 48, 32, 16]
 images = [create_logo_image(s) for s in sizes]
 
 images[0].save("logo.ico", format="ICO", sizes=[(s, s) for s in sizes])
-print("Successfully generated abstract logo.ico!")
+images[0].save("logo.png", format="PNG")
+print("Successfully generated abstract logo.ico and logo.png!")

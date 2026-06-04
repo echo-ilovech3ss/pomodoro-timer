@@ -451,25 +451,33 @@ impl FocusFlowApp {
         app.update_ambient_sound();
 
         // Spawn background System Tray (hidden icons) helper script
-        let mut helper_path = std::path::PathBuf::from("tray_helper.ps1");
-        if !helper_path.exists() {
-            if let Some(local_data) = dirs::data_local_dir() {
-                helper_path = local_data.join("Programs").join("Focus Flow").join("tray_helper.ps1");
+        #[cfg(target_os = "windows")]
+        {
+            let mut helper_path = std::path::PathBuf::from("tray_helper.ps1");
+            if !helper_path.exists() {
+                if let Some(local_data) = dirs::data_local_dir() {
+                    helper_path = local_data.join("Programs").join("Focus Flow").join("tray_helper.ps1");
+                }
+            }
+            if helper_path.exists() {
+                let mut cmd = std::process::Command::new("powershell");
+                cmd.arg("-WindowStyle")
+                    .arg("Hidden")
+                    .arg("-ExecutionPolicy")
+                    .arg("Bypass")
+                    .arg("-File")
+                    .arg(helper_path);
+                cmd.creation_flags(CREATE_NO_WINDOW);
+                cmd.spawn().ok();
             }
         }
-        if helper_path.exists() {
-            let mut cmd = std::process::Command::new("powershell");
-            cmd.arg("-WindowStyle")
-                .arg("Hidden")
-                .arg("-ExecutionPolicy")
-                .arg("Bypass")
-                .arg("-File")
-                .arg(helper_path);
-            #[cfg(target_os = "windows")]
-            cmd.creation_flags(CREATE_NO_WINDOW);
-            cmd.spawn().ok();
+
+        #[cfg(target_os = "macos")]
+        {
+            let _ = mac_notification_sys::set_application("com.apple.Terminal");
         }
 
+        Self::show_notification("Focus Flow Launch 🚀", "Application started successfully on macOS!");
         app
     }
 
@@ -538,16 +546,30 @@ impl FocusFlowApp {
         }
     }
 
-    fn show_windows_notification(title: &str, message: &str) {
-        let script = format!(
-            r#"[void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); $notification = New-Object System.Windows.Forms.NotifyIcon; $notification.Icon = [System.Drawing.SystemIcons]::Information; $notification.BalloonTipTitle = '{}'; $notification.BalloonTipText = '{}'; $notification.Visible = $true; $notification.ShowBalloonTip(5000);"#,
-            title.replace('\'', "''"), message.replace('\'', "''")
-        );
-        let mut cmd = std::process::Command::new("powershell");
-        cmd.arg("-Command").arg(script);
+    fn show_notification(title: &str, message: &str) {
         #[cfg(target_os = "windows")]
-        cmd.creation_flags(CREATE_NO_WINDOW);
-        cmd.spawn().ok();
+        {
+            let script = format!(
+                r#"[void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); $notification = New-Object System.Windows.Forms.NotifyIcon; $notification.Icon = [System.Drawing.SystemIcons]::Information; $notification.BalloonTipTitle = '{}'; $notification.BalloonTipText = '{}'; $notification.Visible = $true; $notification.ShowBalloonTip(5000);"#,
+                title.replace('\'', "''"), message.replace('\'', "''")
+            );
+            let mut cmd = std::process::Command::new("powershell");
+            cmd.arg("-Command").arg(script);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.spawn().ok();
+        }
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        {
+            let title = title.to_string();
+            let message = message.to_string();
+            std::thread::spawn(move || {
+                let mut notification = notify_rust::Notification::new();
+                notification.summary(&title).body(&message);
+                #[cfg(target_os = "macos")]
+                notification.sound_name("Submarine");
+                let _ = notification.show();
+            });
+        }
     }
 
     fn handle_timer_complete(&mut self) {
@@ -556,7 +578,7 @@ impl FocusFlowApp {
                 let duration = self.work_duration_mins;
                 self.save_session_to_history(duration);
                 self.audio_player.play_work_complete();
-                Self::show_windows_notification("Focus Session Complete", "Amazing work! Time to rest and breathe.");
+                Self::show_notification("Focus Session Complete", "Amazing work! Time to rest and breathe.");
 
                 // Switch to break
                 self.mode = TimerMode::Break;
@@ -568,7 +590,7 @@ impl FocusFlowApp {
             }
             TimerMode::Break => {
                 self.audio_player.play_break_complete();
-                Self::show_windows_notification("Break Over", "Ready to flow? Let's start the next focus cycle.");
+                Self::show_notification("Break Over", "Ready to flow? Let's start the next focus cycle.");
 
                 // Switch to work
                 self.mode = TimerMode::Work;
@@ -610,7 +632,7 @@ impl FocusFlowApp {
         
         let new_streak = self.calculate_daily_streak();
         if new_streak > old_streak {
-            Self::show_windows_notification(
+            Self::show_notification(
                 "Streak Extended! 🔥",
                 &format!("Amazing! You are now on a {} Day Focus Streak!", new_streak)
             );
