@@ -472,24 +472,6 @@ impl FocusFlowApp {
             }
         }
 
-        #[cfg(target_os = "macos")]
-        {
-            let is_bundled = if let Ok(exe_path) = std::env::current_exe() {
-                exe_path.to_string_lossy().contains(".app/Contents/MacOS")
-            } else {
-                false
-            };
-            let bundle_id = if is_bundled {
-                "com.focusflow.pomodoro-timer"
-            } else {
-                "com.apple.Terminal"
-            };
-            if let Err(e) = mac_notification_sys::set_application(bundle_id) {
-                eprintln!("Failed to set notification application to {}: {:?}", bundle_id, e);
-            }
-        }
-
-        Self::show_notification("Focus Flow", "Time to lock in!");
         app
     }
 
@@ -1793,6 +1775,23 @@ fn load_icon() -> Option<egui::IconData> {
 }
 
 fn main() -> eframe::Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let is_bundled = if let Ok(exe_path) = std::env::current_exe() {
+            exe_path.to_string_lossy().contains(".app/Contents/MacOS")
+        } else {
+            false
+        };
+        let bundle_id = if is_bundled {
+            "com.focusflow.pomodoro-timer"
+        } else {
+            "com.apple.Terminal"
+        };
+        let _ = mac_notification_sys::set_application(bundle_id);
+    }
+
+    FocusFlowApp::show_notification("Focus Flow", "Time to lock in!");
+
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size([900.0, 720.0])
         .with_min_inner_size([720.0, 580.0])
