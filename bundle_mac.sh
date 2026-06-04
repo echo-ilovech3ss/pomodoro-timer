@@ -16,6 +16,12 @@ echo "=== 3. Copying Binary ==="
 cp "target/release/focus-flow" "${APP_BUNDLE}/Contents/MacOS/Focus Flow"
 chmod +x "${APP_BUNDLE}/Contents/MacOS/Focus Flow"
 
+echo "=== 3.5. Copying Tray Helper and Resources ==="
+cp "target/release/tray_helper" "${APP_BUNDLE}/Contents/MacOS/tray_helper"
+chmod +x "${APP_BUNDLE}/Contents/MacOS/tray_helper"
+cp "logo.png" "${APP_BUNDLE}/Contents/Resources/logo.png"
+
+
 echo "=== 4. Generating Retina AppIcon.icns ==="
 ICON_SET="logo.iconset"
 mkdir -p "$ICON_SET"

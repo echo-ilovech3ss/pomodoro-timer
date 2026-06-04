@@ -384,6 +384,8 @@ struct FocusFlowApp {
     compact_mode: bool,
     last_compact_state: bool,
     dynamic_sinks: Vec<rodio::Sink>,
+    #[cfg(target_os = "macos")]
+    tray_process: Option<std::process::Child>,
 }
 
 impl FocusFlowApp {
@@ -445,10 +447,65 @@ impl FocusFlowApp {
             compact_mode: false,
             last_compact_state: false,
             dynamic_sinks: Vec::new(),
+            #[cfg(target_os = "macos")]
+            tray_process: None,
         };
 
         // Initialize ambient music state if loaded configuration is set
         app.update_ambient_sound();
+
+        // Spawn background System Tray (menu bar) helper script for macOS
+        #[cfg(target_os = "macos")]
+        {
+            let mut helper_path = std::path::PathBuf::from("tray_helper");
+            if !helper_path.exists() {
+                if let Ok(mut exe_path) = std::env::current_exe() {
+                    exe_path.pop(); // Remove binary name
+                    let test_path = exe_path.join("tray_helper");
+                    if test_path.exists() {
+                        helper_path = test_path;
+                    } else {
+                        // Check inside bundle
+                        helper_path = std::path::PathBuf::from("/Applications/Focus Flow.app/Contents/MacOS/tray_helper");
+                    }
+                }
+            }
+
+            if helper_path.exists() {
+                if let Ok(mut child) = std::process::Command::new(&helper_path)
+                    .stdin(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped())
+                    .spawn() 
+                {
+                    if let Some(stdout) = child.stdout.take() {
+                        let ctx = cc.egui_ctx.clone();
+                        std::thread::spawn(move || {
+                            use std::io::{BufRead, BufReader};
+                            let reader = BufReader::new(stdout);
+                            for line in reader.lines() {
+                                if let Ok(line) = line {
+                                    match line.trim() {
+                                        "SHOW" => {
+                                            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                                            ctx.request_repaint();
+                                        }
+                                        "HIDE" => {
+                                            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+                                            ctx.request_repaint();
+                                        }
+                                        "EXIT" => {
+                                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        });
+                        app.tray_process = Some(child);
+                    }
+                }
+            }
+        }
 
         // Spawn background System Tray (hidden icons) helper script
         #[cfg(target_os = "windows")]
@@ -1745,6 +1802,17 @@ impl eframe::App for FocusFlowApp {
             egui::CentralPanel::default().frame(central_frame).show_inside(ui, |ui| {
                 self.render_timer_and_settings(ui);
             });
+        }
+    }
+}
+
+impl Drop for FocusFlowApp {
+    fn drop(&mut self) {
+        #[cfg(target_os = "macos")]
+        {
+            if let Some(mut child) = self.tray_process.take() {
+                let _ = child.kill();
+            }
         }
     }
 }
