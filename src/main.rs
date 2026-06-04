@@ -252,6 +252,8 @@ struct AppConfig {
     task_queue: Vec<TodoItem>,
     work_duration_mins: u32,
     break_duration_mins: u32,
+    #[serde(default)]
+    start_minimized: bool,
 }
 
 impl Default for AppConfig {
@@ -270,6 +272,7 @@ impl Default for AppConfig {
             task_queue: Vec::new(),
             work_duration_mins: 25,
             break_duration_mins: 5,
+            start_minimized: false,
         }
     }
 }
@@ -386,6 +389,7 @@ struct FocusFlowApp {
     dynamic_sinks: Vec<rodio::Sink>,
     #[cfg(target_os = "macos")]
     tray_process: Option<std::process::Child>,
+    start_minimized: bool,
 }
 
 impl FocusFlowApp {
@@ -449,6 +453,7 @@ impl FocusFlowApp {
             dynamic_sinks: Vec::new(),
             #[cfg(target_os = "macos")]
             tray_process: None,
+            start_minimized: config.start_minimized,
         };
 
         // Initialize ambient music state if loaded configuration is set
@@ -541,6 +546,7 @@ impl FocusFlowApp {
             task_queue: self.task_queue.clone(),
             work_duration_mins: self.work_duration_mins,
             break_duration_mins: self.break_duration_mins,
+            start_minimized: self.start_minimized,
         };
         self.config_manager.save_config(&config);
     }
@@ -1292,6 +1298,13 @@ impl FocusFlowApp {
                 });
             });
 
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if ui.checkbox(&mut self.start_minimized, "📥 Start Minimized to Tray").changed() {
+                    self.persist_config();
+                }
+            });
+
             ui.add_space(10.0);
 
             // Active Task Name & Todo Queue Panel enqueuer
@@ -1848,12 +1861,18 @@ fn main() -> eframe::Result<()> {
         let _ = mac_notification_sys::set_application(bundle_id);
     }
 
+    let config_manager = ConfigManager::new();
+    let config = config_manager.load_config();
+    let args: Vec<String> = std::env::args().collect();
+    let start_minimized = config.start_minimized || args.contains(&"--minimized".to_string()) || args.contains(&"-m".to_string());
+
     FocusFlowApp::show_notification("Focus Flow", "Time to lock in!");
 
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size([900.0, 720.0])
         .with_min_inner_size([720.0, 580.0])
-        .with_title("Focus Flow");
+        .with_title("Focus Flow")
+        .with_visible(!start_minimized);
 
     if let Some(icon) = load_icon() {
         viewport = viewport.with_icon(icon);
