@@ -479,9 +479,12 @@ impl FocusFlowApp {
             } else {
                 false
             };
-            if !is_bundled {
-                let _ = mac_notification_sys::set_application("com.apple.Terminal");
-            }
+            let bundle_id = if is_bundled {
+                "com.focusflow.pomodoro"
+            } else {
+                "com.apple.Terminal"
+            };
+            let _ = mac_notification_sys::set_application(bundle_id);
         }
 
         Self::show_notification("Focus Flow", "Time to lock in!");
