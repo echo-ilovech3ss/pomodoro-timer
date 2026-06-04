@@ -474,7 +474,14 @@ impl FocusFlowApp {
 
         #[cfg(target_os = "macos")]
         {
-            let _ = mac_notification_sys::set_application("com.apple.Terminal");
+            let is_bundled = if let Ok(exe_path) = std::env::current_exe() {
+                exe_path.to_string_lossy().contains(".app/Contents/MacOS")
+            } else {
+                false
+            };
+            if !is_bundled {
+                let _ = mac_notification_sys::set_application("com.apple.Terminal");
+            }
         }
 
         Self::show_notification("Focus Flow", "Time to lock in!");
