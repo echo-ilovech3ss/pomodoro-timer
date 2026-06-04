@@ -480,11 +480,13 @@ impl FocusFlowApp {
                 false
             };
             let bundle_id = if is_bundled {
-                "com.focusflow.pomodoro"
+                "com.focusflow.pomodoro-timer"
             } else {
                 "com.apple.Terminal"
             };
-            let _ = mac_notification_sys::set_application(bundle_id);
+            if let Err(e) = mac_notification_sys::set_application(bundle_id) {
+                eprintln!("Failed to set notification application to {}: {:?}", bundle_id, e);
+            }
         }
 
         Self::show_notification("Focus Flow", "Time to lock in!");

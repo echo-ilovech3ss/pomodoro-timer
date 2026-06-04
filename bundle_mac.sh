@@ -47,7 +47,7 @@ cat <<EOF > "$INFO_PLIST"
     <key>CFBundleExecutable</key>
     <string>Focus Flow</string>
     <key>CFBundleIdentifier</key>
-    <string>com.focusflow.pomodoro</string>
+    <string>com.focusflow.pomodoro-timer</string>
     <key>CFBundleName</key>
     <string>Focus Flow</string>
     <key>CFBundleIconFile</key>
@@ -65,7 +65,7 @@ cat <<EOF > "$INFO_PLIST"
 EOF
 
 echo "=== 5.5. Codesigning App Bundle ==="
-codesign --force --deep --sign - "$APP_BUNDLE"
+codesign --force --deep --sign - -r='designated => identifier "com.focusflow.pomodoro-timer"' "$APP_BUNDLE"
 
 echo "=== 6. Updating Launch Services Database ==="
 # Force macOS to register the new bundle and icon immediately
