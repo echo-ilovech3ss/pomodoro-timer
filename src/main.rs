@@ -390,6 +390,7 @@ struct FocusFlowApp {
     #[cfg(target_os = "macos")]
     tray_process: Option<std::process::Child>,
     start_minimized: bool,
+    first_frame: bool,
 }
 
 impl FocusFlowApp {
@@ -453,7 +454,8 @@ impl FocusFlowApp {
             dynamic_sinks: Vec::new(),
             #[cfg(target_os = "macos")]
             tray_process: None,
-            start_minimized: config.start_minimized,
+            start_minimized: config.start_minimized || std::env::args().any(|arg| arg == "--minimized" || arg == "-m"),
+            first_frame: true,
         };
 
         // Initialize ambient music state if loaded configuration is set
@@ -1649,6 +1651,13 @@ impl FocusFlowApp {
 
 impl eframe::App for FocusFlowApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if self.first_frame {
+            self.first_frame = false;
+            if self.start_minimized {
+                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Visible(false));
+            }
+        }
+
         // Cleanup completed dynamic audio sinks to prevent memory/resource leaks
         self.dynamic_sinks.retain(|sink| !sink.empty());
 
