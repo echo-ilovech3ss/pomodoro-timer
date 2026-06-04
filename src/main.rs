@@ -477,7 +477,7 @@ impl FocusFlowApp {
             let _ = mac_notification_sys::set_application("com.apple.Terminal");
         }
 
-        Self::show_notification("Focus Flow Launch 🚀", "Application started successfully on macOS!");
+        Self::show_notification("Focus Flow 🚀", "Time to lock in!");
         app
     }
 
@@ -566,7 +566,17 @@ impl FocusFlowApp {
                 let mut notification = notify_rust::Notification::new();
                 notification.summary(&title).body(&message);
                 #[cfg(target_os = "macos")]
-                notification.sound_name("Submarine");
+                {
+                    notification.sound_name("Submarine");
+                    if let Ok(mut path) = std::env::current_dir() {
+                        path.push("logo.png");
+                        if path.exists() {
+                            if let Some(path_str) = path.to_str() {
+                                notification.icon(path_str);
+                            }
+                        }
+                    }
+                }
                 let _ = notification.show();
             });
         }
@@ -578,7 +588,7 @@ impl FocusFlowApp {
                 let duration = self.work_duration_mins;
                 self.save_session_to_history(duration);
                 self.audio_player.play_work_complete();
-                Self::show_notification("Focus Session Complete", "Amazing work! Time to rest and breathe.");
+                Self::show_notification("Focus Session Complete ☕", "Great job! Time to take a breather and step away.");
 
                 // Switch to break
                 self.mode = TimerMode::Break;
@@ -590,7 +600,7 @@ impl FocusFlowApp {
             }
             TimerMode::Break => {
                 self.audio_player.play_break_complete();
-                Self::show_notification("Break Over", "Ready to flow? Let's start the next focus cycle.");
+                Self::show_notification("Break's Over! 🎯", "Ready to flow? Let's lock back in.");
 
                 // Switch to work
                 self.mode = TimerMode::Work;
@@ -1745,12 +1755,33 @@ impl eframe::App for FocusFlowApp {
     }
 }
 
+fn load_icon() -> Option<egui::IconData> {
+    let icon_bytes = include_bytes!("../logo.png");
+    if let Ok(image) = image::load_from_memory(icon_bytes) {
+        let image = image.to_rgba8();
+        let (width, height) = image.dimensions();
+        Some(egui::IconData {
+            rgba: image.into_raw(),
+            width,
+            height,
+        })
+    } else {
+        None
+    }
+}
+
 fn main() -> eframe::Result<()> {
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_inner_size([900.0, 720.0])
+        .with_min_inner_size([720.0, 580.0])
+        .with_title("Focus Flow");
+
+    if let Some(icon) = load_icon() {
+        viewport = viewport.with_icon(icon);
+    }
+
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([900.0, 720.0])
-            .with_min_inner_size([720.0, 580.0])
-            .with_title("Focus Flow"),
+        viewport,
         ..Default::default()
     };
 
