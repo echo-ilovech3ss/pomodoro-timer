@@ -1088,16 +1088,6 @@ impl FocusFlowApp {
                     if ui.button("📥 Minimize to Tray").clicked() {
                         ui.ctx().send_viewport_cmd(egui::ViewportCommand::Visible(false));
                     }
-                    ui.add_space(8.0);
-                    if ui.button("🔔 Test Notification").clicked() {
-                        std::thread::spawn(move || {
-                            std::thread::sleep(std::time::Duration::from_secs(3));
-                            Self::show_notification(
-                                "Focus Flow Test",
-                                "This is a test notification from Focus Flow!"
-                            );
-                        });
-                    }
                 });
             });
 
