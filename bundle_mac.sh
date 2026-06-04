@@ -64,6 +64,9 @@ cat <<EOF > "$INFO_PLIST"
 </plist>
 EOF
 
+echo "=== 5.5. Codesigning App Bundle ==="
+codesign --force --deep --sign - "$APP_BUNDLE"
+
 echo "=== 6. Updating Launch Services Database ==="
 # Force macOS to register the new bundle and icon immediately
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP_BUNDLE"
