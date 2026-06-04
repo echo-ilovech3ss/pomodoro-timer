@@ -477,7 +477,7 @@ impl FocusFlowApp {
             let _ = mac_notification_sys::set_application("com.apple.Terminal");
         }
 
-        Self::show_notification("Focus Flow 🚀", "Time to lock in!");
+        Self::show_notification("Focus Flow", "Time to lock in!");
         app
     }
 
@@ -588,7 +588,7 @@ impl FocusFlowApp {
                 let duration = self.work_duration_mins;
                 self.save_session_to_history(duration);
                 self.audio_player.play_work_complete();
-                Self::show_notification("Focus Session Complete ☕", "Great job! Time to take a breather and step away.");
+                Self::show_notification("Focus Session Complete", "Great job! Time to take a breather and step away.");
 
                 // Switch to break
                 self.mode = TimerMode::Break;
@@ -600,7 +600,7 @@ impl FocusFlowApp {
             }
             TimerMode::Break => {
                 self.audio_player.play_break_complete();
-                Self::show_notification("Break's Over! 🎯", "Ready to flow? Let's lock back in.");
+                Self::show_notification("Break's Over!", "Ready to flow? Let's lock back in.");
 
                 // Switch to work
                 self.mode = TimerMode::Work;
@@ -643,7 +643,7 @@ impl FocusFlowApp {
         let new_streak = self.calculate_daily_streak();
         if new_streak > old_streak {
             Self::show_notification(
-                "Streak Extended! 🔥",
+                "Streak Extended!",
                 &format!("Amazing! You are now on a {} Day Focus Streak!", new_streak)
             );
         }
